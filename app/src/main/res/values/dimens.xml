@@ -1,0 +1,121 @@
+<resources>
+
+
+
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="nav_header_vertical_spacing">16dp</dimen>
+    <dimen name="nav_header_height">160dp</dimen>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name= "maincover">350dp</dimen>
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="fab_margin">16dp</dimen>
+    <dimen name="text_size_of_home_lists_titles">20sp</dimen>
+    <dimen name="text_size_of_see_all_text">10sp</dimen>
+    <dimen name="right_margin_of_see_all_text">15dp</dimen>
+    <dimen name="top_margin_of_home_lists_titles">5dp</dimen>
+    <dimen name="left_margin_of_home_lists_titles">8dp</dimen>
+    <dimen name="height_of_home_lists_title_layout">36dp</dimen>
+    <dimen name="padding_of_home_text">5dp</dimen>
+
+    <!-- card related dimensions -->
+    <dimen name="margintop">5dp</dimen>
+    <dimen name="cardicon">20dp</dimen>
+    <dimen name="button_width">240dp</dimen>
+    <dimen name="button_height">36dp</dimen>
+    <dimen name="card_button_width">150dp</dimen>
+    <dimen name="card_button_height">30dp</dimen>
+    <dimen name ="card_width">160dp</dimen>
+    <dimen name ="topsong_card_height">50dp</dimen>
+    <dimen name ="topsong_card_width">70dp</dimen>
+    <dimen name="topsongcardheight">300dp</dimen>
+    <dimen name="cardradius">2dp</dimen>
+    <dimen name="cardelevation">2dp</dimen>
+    <dimen name="audio_album_size">60dp</dimen>
+    <dimen name="audio_list_height">65dp</dimen>
+    <dimen name="video_list_video_width">100dp</dimen>
+
+    <!-- this portion is for audio player -->
+    <dimen name="playIcon">80dp</dimen>
+    <dimen name="next_or_prev">40dp</dimen>
+    <dimen name="repeat_icon">40dp</dimen>
+    <dimen name="play_margin">12dp</dimen>
+    <dimen name="next_margin">16dp</dimen>
+    <dimen name="time_margin">16dp</dimen>
+    <dimen name="other_icon_size">20dp</dimen>
+    <dimen name="option_icon_size">30dp</dimen>
+    <dimen name="like_margin">30dp</dimen>
+    <dimen name="like_gap">5dp</dimen>
+
+
+
+    <!-- this portion is for playlist -->
+
+    <dimen name="playlist_card_bar_width">60dp</dimen>
+    <dimen name="playlist_card_bar2_width">55dp</dimen>
+    <dimen name="playlist_card_bar_height">2dp</dimen>
+    <dimen name="playlist_card_image_width">66dp</dimen>
+    <dimen name="playlist_card_image_height">58dp</dimen>
+    <dimen name="playlist_card_margin_left">10dp</dimen>
+    <dimen name="playlist_card_margin_right">10dp</dimen>
+    <dimen name="playlist_gap1">5dp</dimen>
+    <dimen name="playlist_gap2">10dp</dimen>
+    <dimen name="playlist_gap3">3dp</dimen>
+    <dimen name="playlist_card_height">80dp</dimen>
+    <dimen name="playlist_card_icon_size">80dp</dimen>
+    <dimen name="playlist_card_mini_icon">20dp</dimen>
+
+
+    <!-- this portion ofr all songs in a playlist -->
+
+    <dimen name="playlist_cover_height">180dp</dimen>
+    <dimen name="playlist_button_height">36dp</dimen>
+    <dimen name="playlist_button_width">100dp</dimen>
+
+    <dimen name="button_gap">16dp</dimen>
+    <dimen name="icon_size">22dp</dimen>
+
+
+    <!-- this portion is of mymusic -->
+
+    <dimen name="mymusic_options_card">110dp</dimen>
+    <dimen name="mymusic_options_card_icon">65dp</dimen>
+    <dimen name="mymusic_options_margin">10dp</dimen>
+
+
+    <!-- this portion is of user profile -->
+    <dimen name="profile_cover_height">170dp</dimen>
+    <dimen name="profile_icon_size">55dp</dimen>
+    <dimen name="search_size">60dp</dimen>
+    <dimen name="edit_icon_size">20dp</dimen>
+
+    <!-- dialogue resources -->
+
+    <dimen name="dialogue_width">300dp</dimen>
+    <dimen name="dialogue_height">500dp</dimen>
+    <dimen name="text_field_height">66dp</dimen>
+
+    <!-- inflate music player -->
+    <dimen name="player_inflate_height">100dp</dimen>
+    <dimen name="player_avatar_size">65dp</dimen>
+    <dimen name="player_icon_size">50dp</dimen>
+
+
+    <!-- Text sizes -->
+    <dimen name="text_size_extra_micro">10sp</dimen>
+    <dimen name="text_size_micro">12sp</dimen>
+    <dimen name="text_size_small">14sp</dimen>
+    <dimen name="text_size_medium">16sp</dimen>
+    <dimen name="text_size_large">18sp</dimen>
+
+    <!-- Nofication bar button -->
+    <dimen name="status_bar_button_width_height">48dp</dimen>
+    <dimen name="status_bar_album_art">64dp</dimen>
+    <dimen name="status_bar_button_info_container_padding_left">11dp</dimen>
+    <dimen name="notification_expanded_height">128.0dip</dimen>
+    <dimen name="play_controls_notification">48.0dip</dimen>
+    <dimen name="notification_padding">8.0dip</dimen>
+    <dimen name="notif_height">160dp</dimen>
+    <dimen name="notif_text_height">100dp</dimen>
+    <dimen name = "icon_height">40dp</dimen>
+</resources>

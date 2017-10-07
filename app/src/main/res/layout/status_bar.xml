@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@android:color/black"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal" >
+
+    <ImageView
+        android:layout_width="@android:dimen/notification_large_icon_width"
+        android:layout_height="@android:dimen/notification_large_icon_height"
+        android:src="@drawable/model"
+        android:id="@+id/notif_id"
+        android:scaleType="fitXY"
+        />
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+
+        <LinearLayout
+            android:layout_marginLeft="@dimen/playlist_gap2"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white"
+                android:text="TITLE"
+                android:textStyle="bold"
+                android:textSize="@dimen/text_size_large"
+                />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/previous"
+                android:layout_width="@dimen/icon_height"
+                android:layout_height="@dimen/icon_height"
+                android:src="@mipmap/audio_prev"
+                />
+            <ImageView
+                android:layout_marginRight="20dp"
+                android:layout_marginLeft="20dp"
+                android:id="@+id/play"
+                android:layout_width="@dimen/icon_height"
+                android:layout_height="@dimen/icon_height"
+                android:src="@mipmap/audioplay"
+                />
+            <ImageView
+                android:id="@+id/next"
+                android:layout_width="@dimen/icon_height"
+                android:layout_height="@dimen/icon_height"
+                android:src="@mipmap/audio_next"
+                />
+
+
+        </LinearLayout>
+
+
+    </LinearLayout>
+
+
+
+
+
+</LinearLayout>

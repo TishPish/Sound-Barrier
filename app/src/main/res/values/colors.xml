@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="red">#f64943</color>
+    <color name="textcolor">#ffffff</color>
+    <color name="background_home_lists">#d6d6d4</color>
+    <color name="color_of_home_text">#313130</color>
+    <color name="fb">#305cc2</color>
+    <color name="gmail">#c70c06</color>
+    <color name="tabsScrollColor">#ffffff</color>
+    <color name="mymusic_back">#ccc6c6</color>
+    <color name="follow">#60b947</color>
+    <color name="audio_list_dark">#000044</color>
+    <color name="audio_list_vivid">#605b5b</color>
+    <color name="audio_list_light">#afaaaa</color>
+</resources>
