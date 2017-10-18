@@ -13,6 +13,8 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.View;
@@ -39,6 +41,9 @@ import org.eazegraph.lib.models.ValueLineSeries;
 import java.io.IOException;
 import java.util.List;
 
+import headlines.top.tishpish.soundbarrier.Fragment.Equalizer;
+import headlines.top.tishpish.soundbarrier.Fragment.HomeFragment;
+import headlines.top.tishpish.soundbarrier.Fragment.Statistics;
 import headlines.top.tishpish.soundbarrier.Music.AudioMenu;
 import headlines.top.tishpish.soundbarrier.Music.Constant;
 import headlines.top.tishpish.soundbarrier.Music.SlidingTabLayout;
@@ -75,6 +80,8 @@ public class Home extends AppCompatActivity
     int index = 0;
     boolean player_state;
     double avgVolume=0;
+    Runnable r;
+    boolean use = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -95,10 +102,14 @@ public class Home extends AppCompatActivity
         player = (LinearLayout) findViewById(R.id.player);
         player.setVisibility(View.GONE);
 
+
+
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "DoNjfdhotDimScreen");
 
         mCubicValueLineChart = (ValueLineChart) findViewById(R.id.cubiclinechart);
+        mCubicValueLineChart.setVisibility(View.GONE);
+
 
         series = new ValueLineSeries();
         series.setColor(0xFF56B7F1);
@@ -125,7 +136,9 @@ public class Home extends AppCompatActivity
 
                     if (audioManager.isWiredHeadsetOn())
                     {
+                        mCubicValueLineChart.setVisibility(View.VISIBLE);
                         Toast.makeText(getApplicationContext(), "headphone on, init barrier", Toast.LENGTH_SHORT).show();
+                        use = true;
                         runBarrier();
 
                     }
@@ -150,6 +163,11 @@ public class Home extends AppCompatActivity
                 }
                 else
                 {
+                    mSensor.stop();
+                    use = false;
+                    handler.removeCallbacks(r);
+                    r = null;
+                    mCubicValueLineChart.setVisibility(View.GONE);
 
                 }
 
@@ -191,7 +209,7 @@ public class Home extends AppCompatActivity
         });
 
         /////////////////////////////////////////////////////////////////
-
+/*
         adapter =  new ViewPagerAdapter(getSupportFragmentManager(),Titles,Numboftabs);
 
         pager = (ViewPager) findViewById(R.id.pager);
@@ -206,7 +224,7 @@ public class Home extends AppCompatActivity
             }
         });
 
-        tabs.setViewPager(pager);
+        tabs.setViewPager(pager);  */
 
 
 
@@ -219,6 +237,8 @@ public class Home extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        displaySelectedScreen(R.id.nav_camera);
     }
 
     void runBarrier()
@@ -232,65 +252,72 @@ public class Home extends AppCompatActivity
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        if (r==null)
+        {
 
-        handler = new Handler();
+            handler = new Handler();
+            r = new Runnable() {
 
-        final Runnable r = new Runnable() {
-
-            public void run()
-            {
-
+                public void run()
+                {
 
 
-                //mSensor.start();
-                Log.d("Amplify","HERE");
-                Toast.makeText(getBaseContext(), "Working!", Toast.LENGTH_LONG).show();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run()
+                    if (use)
                     {
-                        avgVolume =0;
-                        double volume = mSensor.getTheAmplitude();
+
+                        Log.d("Amplify","HERE");
+                        Toast.makeText(getBaseContext(), "Working!", Toast.LENGTH_LONG).show();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run()
+                            {
+                                avgVolume =0;
+                                double volume = mSensor.getTheAmplitude();
 
 
 
-                        series.addPoint(new ValueLinePoint(""+(index++), (float) volume));
+                                series.addPoint(new ValueLinePoint(""+(index++), (float) volume));
 
-                        List<ValueLinePoint> vcs = series.getSeries();
-                        if (vcs.size()>50)
-                        {
-                            vcs.remove(0);
-                            series.setSeries(vcs);
-                        }
+                                List<ValueLinePoint> vcs = series.getSeries();
+                                if (vcs.size()>50)
+                                {
+                                    vcs.remove(0);
+                                    series.setSeries(vcs);
+                                }
 
-                        for (int i=vcs.size()-1;i>0 && i>= vcs.size()-6;i--)
-                        {
-                            ValueLinePoint ok = vcs.get(i);
-                            avgVolume+=ok.getValue();
-                        }
-                        avgVolume/=6;
-                        Log.d("Avg volume: ",avgVolume+" ");
-                        if (avgVolume>2200 && player_state)
-                        {
-                            Intent play = new Intent(getApplicationContext(), MusicService.class);
-                            play.setAction("com.example.android.musicplayer.action.TOGGLE_PLAYBACK");
-                            startService(play);
-
-
-                        }
+                                for (int i=vcs.size()-1;i>0 && i>= vcs.size()-6;i--)
+                                {
+                                    ValueLinePoint ok = vcs.get(i);
+                                    avgVolume+=ok.getValue();
+                                }
+                                avgVolume/=6;
+                                //Log.d("Avg volume: ",avgVolume+" ");
+                                if (avgVolume>2200 && player_state)
+                                {
+                                    Intent play = new Intent(getApplicationContext(), MusicService.class);
+                                    play.setAction("com.example.android.musicplayer.action.TOGGLE_PLAYBACK");
+                                    startService(play);
 
 
+                                }
 
-                        mCubicValueLineChart.addSeries(series);
 
 
-                        handler.postDelayed(this, 20); // amount of delay between every cycle of volume level detection + sending the data  out
+                                mCubicValueLineChart.addSeries(series);
+
+
+                                handler.postDelayed(this, 20); // amount of delay between every cycle of volume level detection + sending the data  out
+                            }
+                        });
+
                     }
-                });
-            }
-        };
 
-        handler.postDelayed(r, 50);
+                }
+            };
+
+        }
+
+        handler.postDelayed(r, 20);
     }
 
     @Override
@@ -334,27 +361,45 @@ public class Home extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera)
-        {
-            // Handle the camera action
-        }
-        else if (id == R.id.nav_gallery)
-        {
+        displaySelectedScreen(id);
+        return true;
 
-        }
-        else if (id == R.id.nav_slideshow)
-        {
 
-        }
-        else if (id == R.id.nav_manage)
-        {
+    }
 
+    private void displaySelectedScreen(int itemId) {
+
+        //creating fragment object
+        Fragment fragment = null;
+
+        //initializing the fragment object which is selected
+        switch (itemId)
+        {
+            case R.id.nav_camera:
+                fragment = new HomeFragment();
+                break;
+
+            case R.id.nav_gallery:
+                fragment = new Equalizer();
+                break;
+            case R.id.nav_slideshow:
+                fragment = new Statistics();
+                break;
+        }
+
+        if (fragment != null)
+        {
+            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+            ft.replace(R.id.content_frame, fragment,"MAP_Fragment");
+            ft.commit();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
-        return true;
     }
+
+
+
     @Override
     public void onPause()
     {
@@ -388,6 +433,7 @@ public class Home extends AppCompatActivity
         @Override
         public void onReceive(Context context, Intent intent)
         {
+            Log.d("receiver","music state");
             String command = intent.getStringExtra("Command");
             int x = intent.getIntExtra("time", 0);
 
