@@ -6,8 +6,11 @@ package headlines.top.tishpish.soundbarrier.mediaplayer;
         import android.app.PendingIntent;
         import android.app.Service;
         import android.content.ComponentName;
+        import android.content.ContentResolver;
+        import android.content.ContentUris;
         import android.content.Context;
         import android.content.Intent;
+        import android.database.Cursor;
         import android.media.AudioManager;
         import android.media.MediaPlayer;
         import android.media.MediaPlayer.OnCompletionListener;
@@ -19,6 +22,7 @@ package headlines.top.tishpish.soundbarrier.mediaplayer;
         import android.os.Handler;
         import android.os.IBinder;
         import android.os.PowerManager;
+        import android.provider.MediaStore;
         import android.support.v4.app.NotificationCompat;
         import android.util.Log;
         import android.widget.RemoteViews;
@@ -30,6 +34,8 @@ package headlines.top.tishpish.soundbarrier.mediaplayer;
         import org.json.JSONObject;
 
         import java.io.IOException;
+        import java.util.ArrayList;
+        import java.util.List;
 
         import headlines.top.tishpish.soundbarrier.Music.AudioFocusHelper;
         import headlines.top.tishpish.soundbarrier.Music.Constant;
@@ -48,6 +54,7 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
     Intent intent;
     Intent receivedIntent;
     String json;
+    long songId;
     private String urlToPlay="";
     // The tag we put on debug messages
     final static String TAG = "MusicPlayer";
@@ -112,7 +119,8 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
     final int NOTIFICATION_ID = 1;
     // Our instance of our MusicRetriever, which handles scanning for media and
     // providing titles and URIs as we need.
-    MusicRetriever mRetriever;
+    //MusicRetriever mRetriever;
+    List<MusicRetriever.Item> topSongsList;// = new ArrayList<>();
     // our RemoteControlClient object, which will use remote control APIs available in
     // SDK level >= 14, if they're available.
     /// RemoteControlClientCompat mRemoteControlClientCompat;
@@ -169,10 +177,12 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
 
 
         /////////////////////////////////////////////////////////////// this section reads from sd card
+        topSongsList = new ArrayList<>();
 
+       // mRetriever = new MusicRetriever(getContentResolver());
+       // (new PrepareMusicRetrieverTask(mRetriever,this)).execute();
+        prepare();
 
-        mRetriever = new MusicRetriever(getContentResolver());
-        (new PrepareMusicRetrieverTask(mRetriever,this)).execute();
 
 
         //////////////////////////////////////////////////////////////////
@@ -185,6 +195,54 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
         //mDummyAlbumArt = BitmapFactory.decodeResource(getResources(), R.drawable.model);
         mMediaButtonReceiverComponent = new ComponentName(this, MusicIntentReceiver.class);
     }
+
+    public void prepare()
+    {
+        ContentResolver mContentResolver = getApplicationContext().getContentResolver();
+        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        //Log.i(TAG, "Querying media...");
+        //Log.i(TAG, "URI: " + uri.toString());
+        // Perform a query on the content resolver. The URI we're passing specifies that we
+        // want to query for all audio media on external storage (e.g. SD card)
+        Cursor cur = mContentResolver.query(uri, null,
+                MediaStore.Audio.Media.IS_MUSIC + " = 1", null, null);
+        //Log.i(TAG, "Query finished. " + (cur == null ? "Returned NULL." : "Returned a cursor."));
+        if (cur == null)
+        {
+            // Query failed...
+            //Log.e(TAG, "Failed to retrieve music: cursor is null :-(");
+            return;
+        }
+        if (!cur.moveToFirst()) {
+            // Nothing to query. There is no music on the device. How boring.
+            //Log.e(TAG, "Failed to move cursor to first row (no query results).");
+            return;
+        }
+        //Log.i(TAG, "Listing...");
+        // retrieve the indices of the columns where the ID, title, etc. of the song are
+        int artistColumn = cur.getColumnIndex(MediaStore.Audio.Media.ARTIST);
+        int titleColumn = cur.getColumnIndex(MediaStore.Audio.Media.TITLE);
+        int albumColumn = cur.getColumnIndex(MediaStore.Audio.Media.ALBUM);
+        int durationColumn = cur.getColumnIndex(MediaStore.Audio.Media.DURATION);
+        int idColumn = cur.getColumnIndex(MediaStore.Audio.Media._ID);
+        //Log.i(TAG, "Title column index: " + String.valueOf(titleColumn));
+        //Log.i(TAG, "ID column index: " + String.valueOf(titleColumn));
+        // add each song to mItems
+        do {
+            //Log.i(TAG, "ID: " + cur.getString(idColumn) + " Title: " + cur.getString(titleColumn));
+            topSongsList.add(new MusicRetriever.Item(
+                    cur.getLong(idColumn),
+                    cur.getString(artistColumn),
+                    cur.getString(titleColumn),
+                    cur.getString(albumColumn),
+                    cur.getLong(durationColumn)));
+        } while (cur.moveToNext());
+
+    }
+
+
+
+
     /**
      * Called when we receive an Intent. When we receive an intent sent to us via startService(),
      * this is the method that gets called. So here we react appropriately depending on the
@@ -203,10 +261,13 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
         else if (action.equals(ACTION_PAUSE)) processPauseRequest();
         else if (action.equals(ACTION_URL))
         {
+
+            Log.d("service: ","request received");
             json = receivedIntent.getStringExtra("json");
             parent = receivedIntent.getStringExtra("parent");
-//            Log.d("dekhi",json);
-            preparePlaylist();
+            songId = receivedIntent.getLongExtra("id",-10);
+
+            Log.d("service: ","song id"+songId);
             processAddRequest(intent);
         }
         else if (action.equals(ACTION_SEEK)) seekToPosition(intent);
@@ -216,38 +277,9 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
 
     }
 
-    private void preparePlaylist()
-    {
-        try {
-            //job = new JSONObject(json);
-            songPosition_in_the_list = 0;
-            //JSONArray jay = job.getJSONArray("song_data");
-            audio_file = itItAllValue();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
 
-    }
 
-    private String[] itItAllValue() throws JSONException {
-        String url[] = new String[20];
-        audio_id =new String[20];
-        audio_title =new String[20];
-        audio_artist =new String[20];
-        audio_avatar=new String[20];
-        for (int i=0;i<20;i++)
-        {
-            url[i]= "http://www.vorbis.com/music/Epoq-Lepidoptera.ogg";
-            audio_id[i]= "id";
-            audio_artist[i]="Fahim Arefin";
-            audio_title[i]="Jaber mia ganja khay";
-            audio_avatar[i]="avatar";
-        }
-        //url = fixAllUrl(url);
-        urlToPlay = url[0];
-        //Log.d("url yo pl", urlToPlay);
-        return url;
-    }
+
 
 
     private void processNextSong(Intent intent)
@@ -257,7 +289,7 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
         {
             String url = audio_file[songPosition_in_the_list];
             if (url.contains(".mp3"))
-                playNextSong(audio_file[songPosition_in_the_list]);
+                playNextSong();
             else {
                 Toast.makeText(getApplicationContext(), "there was an error. moving to next", Toast.LENGTH_LONG).show();
                 processNextSong(intent);
@@ -268,7 +300,7 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
             songPosition_in_the_list--;
             String url = audio_file[songPosition_in_the_list];
             if (url.contains(".mp3"))
-                playNextSong(audio_file[songPosition_in_the_list]);
+                playNextSong();
 
         }
     }
@@ -278,7 +310,7 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
         songPosition_in_the_list--;
         if (songPosition_in_the_list<0)
             songPosition_in_the_list++;
-        playNextSong(audio_file[songPosition_in_the_list]);
+        playNextSong();
     }
 
     void processTogglePlaybackRequest() {
@@ -291,7 +323,8 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
     void processPlayRequest()
     {
         // Toast.makeText(MusicService.this, "inside player", Toast.LENGTH_SHORT).show();
-        if (mState == State.Retrieving) {
+        if (mState == State.Retrieving)
+        {
             // If we are still retrieving media, just set the flag to start playing when we're
             // ready
             mWhatToPlayAfterRetrieve = null; // play a random song
@@ -302,7 +335,7 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
         // actually play the song
         if (mState == State.Stopped) {
             // If we're stopped, just go ahead to the next song and start playing
-            playNextSong(urlToPlay);
+            playNextSong();
         }
         else if (mState == State.Paused) {
             mState = State.Playing;
@@ -330,8 +363,8 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
 
         if (mState == State.Paused || mState == State.Playing)
         {
-            if (songPosition_in_the_list<audio_file.length)
-            {
+            /*if (songPosition_in_the_list<audio_file.length)
+            {*/
                 int pos = mPlayer.getCurrentPosition();
                 int duration = mPlayer.getDuration();
                 int percent = (pos * 100) / duration;
@@ -353,14 +386,14 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
                 intent.putExtra("time", percent);
                 intent.putExtra("currentTime", pos);
                 intent.putExtra("totalDuration", duration);
-                intent.putExtra("player_avatar", audio_avatar[songPosition_in_the_list]);
+/*                intent.putExtra("player_avatar", audio_avatar[songPosition_in_the_list]);
                 intent.putExtra("player_title", audio_title[songPosition_in_the_list]);
                 intent.putExtra("player_artist", audio_artist[songPosition_in_the_list]);
-                intent.putExtra("player_id", audio_id[songPosition_in_the_list]);
+                intent.putExtra("player_id", audio_id[songPosition_in_the_list]);*/
                 intent.putExtra("currentPosition", "" + songPosition_in_the_list);
                 intent.setAction(Constant.PLAYER_INTENT_FILTER_NAME);
                 sendBroadcast(intent);
-            }
+
         }
     }
 
@@ -372,7 +405,8 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
             mPlayer.seekTo(pos);
         }
     }
-    void processPauseRequest() {
+    void processPauseRequest()
+    {
 
         Log.d("inside","pause requ");
         if (mState == State.Retrieving) {
@@ -402,7 +436,7 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
     void processSkipRequest() {
         if (mState == State.Playing || mState == State.Paused) {
             tryToGetAudioFocus();
-            playNextSong(null);
+            playNextSong();
         }
     }
     void processStopRequest() {
@@ -465,24 +499,17 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
     }
     void processAddRequest(Intent intent)
     {
-        // Log.d("dekhi ki",urlToPlay);
-        if (mState == State.Retrieving)
+        if (mState == State.Playing || mState == State.Paused )
         {
-
-            mWhatToPlayAfterRetrieve = Uri.parse(urlToPlay);
-            mStartPlayingAfterRetrieve = true;
-            // Log.d("url to play vbvbv",urlToPlay);
-        }
-        else if (mState == State.Playing || mState == State.Paused ) {
 
             processTogglePlaybackRequest();
 
         }
         else
         {
-            Log.i(TAG, "Playing from URL/path: " + "http://www.vorbis.com/music/Epoq-Lepidoptera.ogg");
+            //Log.i(TAG, "Playing from URL/path: " + "http://www.vorbis.com/music/Epoq-Lepidoptera.ogg");
             tryToGetAudioFocus();
-            playNextSong("http://www.vorbis.com/music/Epoq-Lepidoptera.ogg");
+            playNextSong();
         }
     }
     void tryToGetAudioFocus() {
@@ -496,69 +523,41 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
      * manualUrl is non-null, then it specifies the URL or path to the song that will be played
      * next.
      */
-    void playNextSong(String manualUrl) {
+    void playNextSong()
+    {
+
+        Log.d("service: ","inside song player");
         mState = State.Stopped;
         relaxResources(false); // release everything except MediaPlayer
         try {
-            MusicRetriever.Item playingItem = null;
-            if (manualUrl != null) {
+            //MusicRetriever.Item playingItem = null;
+            if (songId != -10)
+            {
                 // set the source of the media player to a manual URL or path
                 createMediaPlayerIfNeeded();
                 mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                mPlayer.setDataSource(manualUrl);
-                mIsStreaming = manualUrl.startsWith("http:") || manualUrl.startsWith("https:");
-                playingItem = new MusicRetriever.Item(0, null, manualUrl, null, 0);
+                long currSong = songId;
+                Uri trackUri = ContentUris.withAppendedId(
+                        android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        currSong);
+                mPlayer.setDataSource(getApplicationContext(),trackUri);
+                //mIsStreaming = manualUrl.startsWith("http:") || manualUrl.startsWith("https:");
+                //playingItem = new MusicRetriever.Item(0, null, manualUrl, null, 0);
             }
             else
             {
 
 
             }
-            mSongTitle = playingItem.getTitle();
+            mSongTitle = "song title";
             mState = State.Preparing;
             setUpAsForeground(mSongTitle + " (loading)");
-            // Use the media button APIs (if available) to register ourselves for media button
-            // events
+
             MediaButtonHelper.registerMediaButtonEventReceiverCompat(
                     mAudioManager, mMediaButtonReceiverComponent);
-            // Use the remote control APIs (if available) to set the playback state
-           /* if (mRemoteControlClientCompat == null) {
-                Intent intent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-                intent.setComponent(mMediaButtonReceiverComponent);
-                mRemoteControlClientCompat = new RemoteControlClientCompat(
-                        PendingIntent.getBroadcast(this /*context*///,
-            //0 /*requestCode, ignored*/, intent /*intent*/,// 0 /*flags*/ /*));
-           /*     RemoteControlHelper.registerRemoteControlClient(mAudioManager,
-                        mRemoteControlClientCompat);
-            }
-            mRemoteControlClientCompat.setPlaybackState(
-                    RemoteControlClient.PLAYSTATE_PLAYING);
-            mRemoteControlClientCompat.setTransportControlFlags(
-                    RemoteControlClient.FLAG_KEY_MEDIA_PLAY |
-                            RemoteControlClient.FLAG_KEY_MEDIA_PAUSE |
-                            RemoteControlClient.FLAG_KEY_MEDIA_NEXT |
-                            RemoteControlClient.FLAG_KEY_MEDIA_STOP);
-            // Update the remote controls
-            mRemoteControlClientCompat.editMetadata(true)
-                    .putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, playingItem.getArtist())
-                    .putString(MediaMetadataRetriever.METADATA_KEY_ALBUM, playingItem.getAlbum())
-                    .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, playingItem.getTitle())
-                    .putLong(MediaMetadataRetriever.METADATA_KEY_DURATION,
-                            playingItem.getDuration())
-                    // TODO: fetch real item artwork
-                    .putBitmap(
-                            RemoteControlClientCompat.MetadataEditorCompat.METADATA_KEY_ARTWORK,
-                            mDummyAlbumArt)
-                    .apply();*/
-            // starts preparing the media player in the background. When it's done, it will call
-            // our OnPreparedListener (that is, the onPrepared() method on this class, since we set
-            // the listener to 'this').
-            //
-            // Until the media player is prepared, we *cannot* call start() on it!
+
             mPlayer.prepareAsync();
-            // If we are streaming from the internet, we want to hold a Wifi lock, which prevents
-            // the Wifi radio from going to sleep while the song is playing. If, on the other hand,
-            // we are *not* streaming, we want to release the lock if we were holding it before.
+
             if (mIsStreaming) mWifiLock.acquire();
             else if (mWifiLock.isHeld()) mWifiLock.release();
         }
@@ -573,7 +572,7 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
         songPosition_in_the_list++;
         if (songPosition_in_the_list>=audio_file.length)
             songPosition_in_the_list--;
-        playNextSong(audio_file[songPosition_in_the_list]);
+        playNextSong();
         /*
         intent.putExtra("Command","SendNextURL");
         intent.setAction(Constant.PLAYER_INTENT_FILTER_NAME);
@@ -760,7 +759,7 @@ public class MusicService extends Service implements OnCompletionListener, OnPre
         if (mStartPlayingAfterRetrieve)
         {
             tryToGetAudioFocus();
-            playNextSong(mWhatToPlayAfterRetrieve == null ? null : mWhatToPlayAfterRetrieve.toString());
+            playNextSong();
         }
     }
     @Override

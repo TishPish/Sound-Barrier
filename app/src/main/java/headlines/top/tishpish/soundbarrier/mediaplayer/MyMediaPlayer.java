@@ -58,7 +58,6 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
 
 
     int likeButtonStatus =-1;  // -1 is for un initialized, 1 is true, 0 for false
-    final String SUGGESTED_URL = "http://www.vorbis.com/music/Epoq-Lepidoptera.ogg";
     ImageView mPlayButton,mNextButton,mPreviousButton,cover,likebutton,settings;
     String json,parent;
     List<String> songURLList = new ArrayList<String>();
@@ -69,6 +68,8 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
     TextView totalTime, currentTime;
     int totalDuration=0;
     String currentId = "-1";
+    long selectedId;
+
     final private int MY_PERMISSIONS_REQUEST_READ_EXTERNAL_STORAGE=  124;
     MyBroadcastReceiver myBroadcast;
     Intent intent;
@@ -81,7 +82,7 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
         super.onCreate(savedInstanceState);
         intent = new Intent(this, MusicService.class);
         intentFilter = new IntentFilter(Constant.PLAYER_INTENT_FILTER_NAME);
-
+        parent="player";
         setContentView(R.layout.audio_music_player);
         mPlayButton = (ImageView) findViewById(R.id.play);
         mPlayButton.setOnClickListener(this);
@@ -107,48 +108,42 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
 
 
 
-
         if (savedInstanceState == null)
         {
             Bundle extras = getIntent().getExtras();
             if (extras!=null)
             {
 
-                JSONObject job;
+
                 json = extras.getString("json");
                 parent = extras.getString("parent");
-                try {
-                    job = new JSONObject(json);
-                    songPosition_in_the_list = job.getInt("now_playing");
-                    JSONArray jay = job.getJSONArray("song_data");
-                    //audio_file = itItAllValue(jay);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
+                selectedId = extras.getLong("selected");
 
                 if (isMyServiceRunning(MusicService.class))
                 {
-                    if (!parent.equals("player")) {
-                        Toast.makeText(getApplicationContext(), "stopping previous service", Toast.LENGTH_SHORT).show();
-                        stopService(intent);
-                        prepareList(audio_file);
-                        getPermission();
-                    }
-                    else
-                    {
-                        prepareList(audio_file);
-                    }
+                    Log.d("player: ","service available");
+                    stopService(intent);
+                    getPermission();
+
                 }
                 else
                 {
-                    prepareList(audio_file);
+                    //  prepareList(audio_file);
+                    Log.d("player: ","no service");
                     getPermission();
                 }
+
+
+
+
             }
         }
-    }
 
+
+
+
+
+    }
 
 
 
@@ -198,53 +193,15 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
         totalTime.setText("00:00");
     }
 
-    protected Map<String, String> getDummyParams() {
-        Map<String, String> dataForParams = new HashMap<String, String>();
-        return dataForParams;
-    }
-
 
 
 
     private void playNextSong()
     {
-
         seekBar.setProgress(0);
         Intent play = new Intent(this, MusicService.class);
         play.setAction("com.example.android.musicplayer.action.NEXT");
         startService(play);
-    }
-    public void getAudioData(String date,String limit,String offset )
-    {
-       /* RequestQueue MyRequestQueue = Volley.newRequestQueue(this);
-        String url = String.format(Constant.API_GET_MAIN_PAGE_AUDIO_LINK ,date, limit , offset);
-        StringRequest myReq = new StringRequest(Request.Method.GET,
-                url, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response)
-            {
-                try
-                {
-                    JSONObject audio = new JSONObject(response);
-                    JSONObject audio_data = audio.getJSONObject("audio_data");
-                    JSONArray data = audio_data.getJSONArray("data");
-                    prepareAudioData(data);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-
-                    }
-                });
-        MyRequestQueue.add(myReq);*/
-    }
-    public void prepareAudioData(JSONArray audioData) throws JSONException
-    {
-       // Toast.makeText(getApplicationContext(), "Server call", Toast.LENGTH_LONG).show();
     }
 
     public void getPermission()
@@ -253,17 +210,17 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED)
         {
-            if (songURLList.size()>0) {
-
-              //  AppSharedPreference asp = AppSharedPreference.getInstance(getApplicationContext());
-              //  asp.setCurrentMusic(audio_avatar[songPosition_in_the_list], audio_title[songPosition_in_the_list],audio_artist[songPosition_in_the_list],audio_id[songPosition_in_the_list]);
+            Log.d("player: ","permission allowed");
                 Intent play = new Intent(this, MusicService.class);
                 play.putExtra("json",json);
                 play.putExtra("parent",parent);
+                play.putExtra("id",selectedId);
                 play.setAction("com.example.android.musicplayer.action.URL");
                 startService(play);
-            }
-        } else {
+
+        }
+        else
+        {
 
 
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
@@ -351,7 +308,7 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
                     mPlayButton.setImageDrawable(getResources().getDrawable(R.mipmap.audioplay));
                 else
                     mPlayButton.setImageDrawable(getResources().getDrawable(R.mipmap.audiopause));
-                if (!currentId.equals(intent.getStringExtra("player_id"))) {
+                /*if (!currentId.equals(intent.getStringExtra("player_id"))) {
 
                     currentId = intent.getStringExtra("player_id");
                     String audio_avatar = intent.getStringExtra("player_avatar");
@@ -359,7 +316,7 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
 
                     title.setText(intent.getStringExtra("player_title"));
                     artist.setText(intent.getStringExtra("player_artist"));
-                }
+                }*/
             }
 
         }
@@ -373,7 +330,6 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
         if(grantResults[0]== PackageManager.PERMISSION_GRANTED)
         {
             Log.v("we are fine","Permission: "+permissions[0]+ "was "+grantResults[0]);
-       //     Toast.makeText(getApplicationContext(), "on Request playing", Toast.LENGTH_LONG).show();
             Intent play = new Intent(this, MusicService.class);
             play.setAction("com.example.android.musicplayer.action.URL");
             startService(play);
@@ -403,25 +359,16 @@ public class MyMediaPlayer extends Activity implements OnClickListener, Activity
         // return current duration in milliseconds
         return currentDuration * 1000;
     }
-
+/*
     public void prepareList(String id[])
     {
         for (int i=0;i<20;i++)
         {
-            songURLList.add("http://www.vorbis.com/music/Epoq-Lepidoptera.ogg");
-            /*if (id[i].length()>30)
-            {
-                songURLList.add( id[i]);
-                Log.d("myyurl", id[i]);
-            }
-            else
-            {
-                songURLList.add("http://api.awaza.net/music_files/" + id[i]);
-                Log.d("myyurl", "http://api.awaza.net/music_files/" + id[i]);
-            }*/
+            songURLList.add("content://media/external/audio/media/6225");
+
         }
 
-    }
+    }*/
 
 
 }

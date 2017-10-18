@@ -12,6 +12,7 @@
     <color name="tabsScrollColor">#ffffff</color>
     <color name="mymusic_back">#ccc6c6</color>
     <color name="follow">#60b947</color>
+    <color name="follow2">#48ab2d</color>
     <color name="audio_list_dark">#000044</color>
     <color name="audio_list_vivid">#605b5b</color>
     <color name="audio_list_light">#afaaaa</color>

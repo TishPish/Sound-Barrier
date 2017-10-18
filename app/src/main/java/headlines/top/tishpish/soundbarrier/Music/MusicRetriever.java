@@ -19,20 +19,25 @@ import java.util.Random;
  * resolver). After that, it's ready to retrieve a random song, with its title and URI, upon
  * request.
  */
-public class MusicRetriever {
+
+
+public class MusicRetriever
+{
     final String TAG = "MusicRetriever";
     ContentResolver mContentResolver;
     // the items (songs) we have queried
     List<Item> mItems = new ArrayList<Item>();
     Random mRandom = new Random();
-    public MusicRetriever(ContentResolver cr) {
+    public MusicRetriever(ContentResolver cr)
+    {
         mContentResolver = cr;
     }
     /**
      * Loads music data. This method may take long, so be sure to call it asynchronously without
      * blocking the main thread.
      */
-    public void prepare() {
+    public void prepare()
+    {
         Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         Log.i(TAG, "Querying media...");
         Log.i(TAG, "URI: " + uri.toString());

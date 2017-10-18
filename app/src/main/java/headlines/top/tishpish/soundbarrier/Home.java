@@ -1,13 +1,20 @@
 package headlines.top.tishpish.soundbarrier;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.PowerManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -17,15 +24,28 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.ToggleButton;
+
+import org.eazegraph.lib.charts.ValueLineChart;
+import org.eazegraph.lib.models.ValueLinePoint;
+import org.eazegraph.lib.models.ValueLineSeries;
+
+import java.io.IOException;
+import java.util.List;
 
 import headlines.top.tishpish.soundbarrier.Music.AudioMenu;
 import headlines.top.tishpish.soundbarrier.Music.Constant;
-import headlines.top.tishpish.soundbarrier.Music.MusicService;
 import headlines.top.tishpish.soundbarrier.Music.SlidingTabLayout;
 import headlines.top.tishpish.soundbarrier.Music.ViewPagerAdapter;
+import headlines.top.tishpish.soundbarrier.SoundAnalysis.Analyzer;
+import headlines.top.tishpish.soundbarrier.SoundAnalysis.SoundMeter;
+import headlines.top.tishpish.soundbarrier.mediaplayer.MusicService;
 import headlines.top.tishpish.soundbarrier.mediaplayer.MyMediaPlayer;
 
 public class Home extends AppCompatActivity
@@ -36,7 +56,7 @@ public class Home extends AppCompatActivity
     SlidingTabLayout tabs;
     int Numboftabs =3;
     String json="";
-    CharSequence Titles[]={"Trending","Popular","Albums"};
+    CharSequence Titles[]={"Recent","Gallery","All"};
     ViewPager pager;
     ImageView avatar, play,next;
     TextView singer, title;
@@ -45,6 +65,16 @@ public class Home extends AppCompatActivity
     Intent intent;
     IntentFilter intentFilter;
     LinearLayout player;
+    Button setmoder;
+    ToggleButton toggle;
+    ValueLineChart mCubicValueLineChart;
+    private PowerManager.WakeLock wl;
+    ValueLineSeries series;
+    private Handler handler;
+    private SoundMeter mSensor;
+    int index = 0;
+    boolean player_state;
+    double avgVolume=0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -53,7 +83,9 @@ public class Home extends AppCompatActivity
         intent = new Intent(this, MusicService.class);
         intentFilter = new IntentFilter(Constant.PLAYER_INTENT_FILTER_NAME);
         setContentView(R.layout.activity_home);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+
 
         title = (TextView) findViewById(R.id.song_name);
         singer = (TextView) findViewById(R.id.song_artist);
@@ -62,6 +94,72 @@ public class Home extends AppCompatActivity
         next = (ImageView) findViewById(R.id.next);
         player = (LinearLayout) findViewById(R.id.player);
         player.setVisibility(View.GONE);
+
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "DoNjfdhotDimScreen");
+
+        mCubicValueLineChart = (ValueLineChart) findViewById(R.id.cubiclinechart);
+
+        series = new ValueLineSeries();
+        series.setColor(0xFF56B7F1);
+
+        mCubicValueLineChart.addSeries(series);
+
+        mSensor = new SoundMeter();
+
+
+
+
+
+
+        toggle = (ToggleButton) findViewById(R.id.toggle);
+
+        toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
+            {
+               // Toast.makeText(getApplicationContext(),isChecked? "checked":"not checked",Toast.LENGTH_SHORT).show();
+                if (isChecked)
+                {
+                    AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+
+                    if (audioManager.isWiredHeadsetOn())
+                    {
+                        Toast.makeText(getApplicationContext(), "headphone on, init barrier", Toast.LENGTH_SHORT).show();
+                        runBarrier();
+
+                    }
+                    else
+                    {
+                        toggle.setChecked(false);
+                        AlertDialog.Builder builder1 = new AlertDialog.Builder(Home.this);
+                        builder1.setMessage("Please connect earphone and try again");
+                        builder1.setCancelable(true);
+                        builder1.setTitle("Failed to start");
+                        builder1.setPositiveButton(
+                                "Ok",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int id) {
+                                        dialog.cancel();
+                                    }
+                                });
+                        AlertDialog alert11 = builder1.create();
+                        alert11.show();
+                    }
+
+                }
+                else
+                {
+
+                }
+
+            }
+        });
+
+
+
+
+
         player.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view)
@@ -76,9 +174,9 @@ public class Home extends AppCompatActivity
         next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent play = new Intent(getApplicationContext(), MusicService.class);
+                /*Intent play = new Intent(getApplicationContext(), MusicService.class);
                 play.setAction("com.example.android.musicplayer.action.NEXT");
-                startService(play);
+                startService(play);*/
             }
         });
 
@@ -123,12 +221,87 @@ public class Home extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
     }
 
+    void runBarrier()
+    {
+        try
+        {
+            mSensor.start();
+            Toast.makeText(getBaseContext(), "Sound sensor initiated.", Toast.LENGTH_SHORT).show();
+        } catch (IllegalStateException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        handler = new Handler();
+
+        final Runnable r = new Runnable() {
+
+            public void run()
+            {
+
+
+
+                //mSensor.start();
+                Log.d("Amplify","HERE");
+                Toast.makeText(getBaseContext(), "Working!", Toast.LENGTH_LONG).show();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run()
+                    {
+                        avgVolume =0;
+                        double volume = mSensor.getTheAmplitude();
+
+
+
+                        series.addPoint(new ValueLinePoint(""+(index++), (float) volume));
+
+                        List<ValueLinePoint> vcs = series.getSeries();
+                        if (vcs.size()>50)
+                        {
+                            vcs.remove(0);
+                            series.setSeries(vcs);
+                        }
+
+                        for (int i=vcs.size()-1;i>0 && i>= vcs.size()-6;i--)
+                        {
+                            ValueLinePoint ok = vcs.get(i);
+                            avgVolume+=ok.getValue();
+                        }
+                        avgVolume/=6;
+                        Log.d("Avg volume: ",avgVolume+" ");
+                        if (avgVolume>2200 && player_state)
+                        {
+                            Intent play = new Intent(getApplicationContext(), MusicService.class);
+                            play.setAction("com.example.android.musicplayer.action.TOGGLE_PLAYBACK");
+                            startService(play);
+
+
+                        }
+
+
+
+                        mCubicValueLineChart.addSeries(series);
+
+
+                        handler.postDelayed(this, 20); // amount of delay between every cycle of volume level detection + sending the data  out
+                    }
+                });
+            }
+        };
+
+        handler.postDelayed(r, 50);
+    }
+
     @Override
-    public void onBackPressed() {
+    public void onBackPressed()
+    {
+
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
+            stop();
             super.onBackPressed();
         }
     }
@@ -161,17 +334,20 @@ public class Home extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
+        if (id == R.id.nav_camera)
+        {
             // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
+        }
+        else if (id == R.id.nav_gallery)
+        {
 
-        } else if (id == R.id.nav_slideshow) {
+        }
+        else if (id == R.id.nav_slideshow)
+        {
 
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
+        }
+        else if (id == R.id.nav_manage)
+        {
 
         }
 
@@ -194,6 +370,18 @@ public class Home extends AppCompatActivity
         super.onResume();
     }
 
+    private void start() throws IllegalStateException, IOException {
+    mSensor.start();
+}
+
+    private void stop() {
+        mSensor.stop();
+    }
+
+    private void sleep() {
+        mSensor.stop();
+    }
+
 
     public class MyBroadcastReceiver extends BroadcastReceiver
     {
@@ -208,7 +396,7 @@ public class Home extends AppCompatActivity
             String player_title = intent.getStringExtra("player_title");
             String player_artist = intent.getStringExtra("player_artist");
             json = intent.getStringExtra("json");
-            boolean player_state = intent.getBooleanExtra("player_state",true);
+            player_state = intent.getBooleanExtra("player_state",true);
 
             if (player_state)
                 play.setImageDrawable(getResources().getDrawable(R.mipmap.audiopause));

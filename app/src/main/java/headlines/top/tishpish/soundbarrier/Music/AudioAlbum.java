@@ -1,9 +1,13 @@
 package headlines.top.tishpish.soundbarrier.Music;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -36,7 +40,7 @@ public class AudioAlbum extends Fragment
 {
     ListView popular_list;
     AlbumAdapter albumListAdapetr;
-    List<AlbumData> topSongsList = new ArrayList<>();
+    List<MusicRetriever.Item> topSongsList = new ArrayList<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState)
@@ -45,7 +49,8 @@ public class AudioAlbum extends Fragment
         popular_list = (ListView) v.findViewById(R.id.audio_album_list_id);
         albumListAdapetr = new AlbumAdapter(getActivity(), topSongsList);
         popular_list.setAdapter(albumListAdapetr);
-        prepareTopSongsData();
+        //prepareTopSongsData();
+        prepare();
 
         popular_list.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
@@ -53,15 +58,10 @@ public class AudioAlbum extends Fragment
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l)
             {
-                /*Context context = view.getContext();
-                TextView tv = (TextView) view.findViewById(R.id.albumname);
-                AlbumData albumData = topSongsList.get(i);
-                Toast.makeText(context, "Item: " + albumData.getId() + " is selected", Toast.LENGTH_SHORT).show();*/
-
                 Intent  player = new Intent(view.getContext(),MyMediaPlayer.class);
-                //SongList slist = new SongList(""+i,topSongsList.get(i).getSongID(),audio_avatar,id,audio_file,title,artist);
-               // String jsonfile = slist.Encode();
-                Log.d("json in trending","");
+                MusicRetriever.Item albumData = topSongsList.get(i);
+                //Toast.makeText(context, "Item: " + albumData.getId() + " is selected", Toast.LENGTH_SHORT).show();
+                player.putExtra("selected",albumData.getId());
                 player.putExtra("parent","trending");  /// to check the origin of the player
                 player.putExtra("json","");
                 startActivity(player);
@@ -69,126 +69,67 @@ public class AudioAlbum extends Fragment
 
             }
         });
-        try {
-            getTopSongData();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+
         return v;
     }
-
+/*
     public void getTopSongData() throws UnsupportedEncodingException
     {
-        /*RequestQueue MyRequestQueue = Volley.newRequestQueue(getActivity().getApplicationContext());
 
-        String url= Constant.API_ALL_AUDIO_ALBUM;
-        //String url ="http://api.awaza.net/album?limit=2&offset=0&orderby=album_id&ordertype=asc&columns[artist_name][type]=like&columns[artist_name][value]=%min%";
-       // final String encodedUrl = String.format(url);
-        Log.d("endoded",url);
-        StringRequest myReq = new StringRequest(Request.Method.GET,
-                url, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response)
-            {
-                try
-                {
-                    Log.d("received",response);
-                    JSONObject album = new JSONObject(response);
-                    JSONObject album_data = album.getJSONObject("album_data");
-                     JSONArray data = album_data.getJSONArray("data");
-                    prepareTopSongsData(data);
-                } catch (JSONException e)
-                {
-                    e.printStackTrace();
-                    Log.d("errrrrr",e.toString());
-                }
-            }
-        },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                       // Log.d("received","errrrr"+error.toString()+"    "+ url);
-                    }
-                });
-        MyRequestQueue.add(myReq);*/
-    }
+    }*/
 
-    public void prepareTopSongsData()  {
-        for (int i=0;i<25;i++)
-        {
-            String singer = "Fahim Arefin";
-            String  song = "Jaber mama ganja khay";
-            String url = "album_avatar";
-            String  info = "31-02-2019";
-            String id = "album_id";
-            AlbumData TopSong = new AlbumData(song, singer,info, url,id); /// same as the popular video layout
-            topSongsList.add(TopSong);
+    public void prepare()
+    {
+        ContentResolver mContentResolver = getActivity().getContentResolver();
+        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+        //Log.i(TAG, "Querying media...");
+        //Log.i(TAG, "URI: " + uri.toString());
+        // Perform a query on the content resolver. The URI we're passing specifies that we
+        // want to query for all audio media on external storage (e.g. SD card)
+        Cursor cur = mContentResolver.query(uri, null,
+                MediaStore.Audio.Media.IS_MUSIC + " = 1", null, null);
+        //Log.i(TAG, "Query finished. " + (cur == null ? "Returned NULL." : "Returned a cursor."));
+        if (cur == null) {
+            // Query failed...
+            //Log.e(TAG, "Failed to retrieve music: cursor is null :-(");
+            return;
         }
+        if (!cur.moveToFirst()) {
+            // Nothing to query. There is no music on the device. How boring.
+            //Log.e(TAG, "Failed to move cursor to first row (no query results).");
+            return;
+        }
+        //Log.i(TAG, "Listing...");
+        // retrieve the indices of the columns where the ID, title, etc. of the song are
+        int artistColumn = cur.getColumnIndex(MediaStore.Audio.Media.ARTIST);
+        int titleColumn = cur.getColumnIndex(MediaStore.Audio.Media.TITLE);
+        int albumColumn = cur.getColumnIndex(MediaStore.Audio.Media.ALBUM);
+        int durationColumn = cur.getColumnIndex(MediaStore.Audio.Media.DURATION);
+        int idColumn = cur.getColumnIndex(MediaStore.Audio.Media._ID);
+        //Log.i(TAG, "Title column index: " + String.valueOf(titleColumn));
+        //Log.i(TAG, "ID column index: " + String.valueOf(titleColumn));
+        // add each song to mItems
+       do {
+            //Log.i(TAG, "ID: " + cur.getString(idColumn) + " Title: " + cur.getString(titleColumn));
+            topSongsList.add(new MusicRetriever.Item(
+                    cur.getLong(idColumn),
+                    cur.getString(artistColumn),
+                    cur.getString(titleColumn),
+                    cur.getString(albumColumn),
+                    cur.getLong(durationColumn)));
+        } while (cur.moveToNext());
+
         albumListAdapetr.notifyDataSetChanged();
     }
 
 
-    public class AlbumData {
-
-        private String title, singer, url, date,id;
-
-
-        public AlbumData(String title, String singer, String date,  String url,String id) {
-            this.title = title;
-            this.singer = singer;
-            this.date = date;
-            this.url = url;
-            this.id = id;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String name) {
-            this.title = name;
-        }
-
-        public String getsinger() {
-            return singer;
-        }
-
-        public void setsinger(String singer) {
-            this.singer = singer;
-        }
-
-        public String geturl() {
-            return url;
-        }
-
-        public void seturl(String url) {
-            this.singer = singer;
-        }
-
-        public String getDate() {
-            return date;
-        }
-
-        public void setDate(String date) {
-            this.date = date;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String date) {
-            this.id = date;
-        }
-
-    }
 
     public class AlbumAdapter extends BaseAdapter
     {
         Activity activity;
-        List<AlbumData> topSong;
+        List<MusicRetriever.Item> topSong;
 
-        public AlbumAdapter(Activity activity, List<AlbumData> topSong)
+        public AlbumAdapter(Activity activity, List<MusicRetriever.Item> topSong)
         {
             super();
             this.activity = activity;
@@ -201,7 +142,7 @@ public class AudioAlbum extends Fragment
         }
 
         @Override
-        public AlbumData getItem(int i) {
+        public MusicRetriever.Item getItem(int i) {
             return topSong.get(i);
         }
 
@@ -222,12 +163,14 @@ public class AudioAlbum extends Fragment
             TextView totalPlay=(TextView) view.findViewById(R.id.myalbum);
             ImageView options = (ImageView) view.findViewById(R.id.topsongsoptions);
 
-            AlbumData data = topSong.get(i);
+            MusicRetriever.Item data = topSong.get(i);
+
             title.setText(data.getTitle());
-            singer.setText(data.getsinger());
-            totalPlay.setText(data.getDate());
-            String url = data.geturl();
+            singer.setText(data.getArtist());
+            totalPlay.setText(data.getDuration()+"");
+            String url = data.getURI().toString();
             Log.d("url",url);
+
 
 
             /*if (!url.isEmpty()) {
