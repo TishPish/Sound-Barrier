@@ -41,6 +41,7 @@ import org.eazegraph.lib.models.ValueLineSeries;
 import java.io.IOException;
 import java.util.List;
 
+import headlines.top.tishpish.soundbarrier.Database.AppSharedPreference;
 import headlines.top.tishpish.soundbarrier.Fragment.Equalizer;
 import headlines.top.tishpish.soundbarrier.Fragment.HomeFragment;
 import headlines.top.tishpish.soundbarrier.Fragment.Statistics;
@@ -90,9 +91,16 @@ public class Home extends AppCompatActivity
         intent = new Intent(this, MusicService.class);
         intentFilter = new IntentFilter(Constant.PLAYER_INTENT_FILTER_NAME);
         setContentView(R.layout.activity_home);
+        //getSupportActionBar().setTitle("Sound Barrier");
+
+        AppSharedPreference adp = AppSharedPreference.getInstance(getApplicationContext());
+        adp.updateVisit();
+
+        /*
+    compile 'com.opalox.rangebarvertical:rangebarvertical:1.1'*/
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-
+        toolbar.setTitle("Sound Barrier");
 
         title = (TextView) findViewById(R.id.song_name);
         singer = (TextView) findViewById(R.id.song_artist);
@@ -101,8 +109,6 @@ public class Home extends AppCompatActivity
         next = (ImageView) findViewById(R.id.next);
         player = (LinearLayout) findViewById(R.id.player);
         player.setVisibility(View.GONE);
-
-
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "DoNjfdhotDimScreen");
@@ -120,9 +126,6 @@ public class Home extends AppCompatActivity
 
 
 
-
-
-
         toggle = (ToggleButton) findViewById(R.id.toggle);
 
         toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -133,7 +136,6 @@ public class Home extends AppCompatActivity
                 if (isChecked)
                 {
                     AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-
                     if (audioManager.isWiredHeadsetOn())
                     {
                         mCubicValueLineChart.setVisibility(View.VISIBLE);
@@ -265,6 +267,8 @@ public class Home extends AppCompatActivity
                     if (use)
                     {
 
+
+
                         Log.d("Amplify","HERE");
                         Toast.makeText(getBaseContext(), "Working!", Toast.LENGTH_LONG).show();
                         runOnUiThread(new Runnable() {
@@ -273,7 +277,6 @@ public class Home extends AppCompatActivity
                             {
                                 avgVolume =0;
                                 double volume = mSensor.getTheAmplitude();
-
 
 
                                 series.addPoint(new ValueLinePoint(""+(index++), (float) volume));
@@ -285,14 +288,19 @@ public class Home extends AppCompatActivity
                                     series.setSeries(vcs);
                                 }
 
-                                for (int i=vcs.size()-1;i>0 && i>= vcs.size()-6;i--)
+                                for (int i=vcs.size()-1;i>0 && i>= vcs.size()-5;i--)
                                 {
                                     ValueLinePoint ok = vcs.get(i);
                                     avgVolume+=ok.getValue();
                                 }
-                                avgVolume/=6;
-                                //Log.d("Avg volume: ",avgVolume+" ");
-                                if (avgVolume>2200 && player_state)
+                                avgVolume/=5;
+                                Log.d("Avg volume: ",avgVolume+" ");
+                                if (avgVolume!=1)
+                                {
+                                    AppSharedPreference asp = AppSharedPreference.getInstance(getBaseContext());
+                                    asp.updateTime(asp.GetTime()+50);
+                                }
+                                if (avgVolume>1900 && player_state)
                                 {
                                     Intent play = new Intent(getApplicationContext(), MusicService.class);
                                     play.setAction("com.example.android.musicplayer.action.TOGGLE_PLAYBACK");
@@ -306,7 +314,7 @@ public class Home extends AppCompatActivity
                                 mCubicValueLineChart.addSeries(series);
 
 
-                                handler.postDelayed(this, 20); // amount of delay between every cycle of volume level detection + sending the data  out
+                                handler.postDelayed(this, 50); // amount of delay between every cycle of volume level detection + sending the data  out
                             }
                         });
 
@@ -367,7 +375,8 @@ public class Home extends AppCompatActivity
 
     }
 
-    private void displaySelectedScreen(int itemId) {
+    private void displaySelectedScreen(int itemId)
+    {
 
         //creating fragment object
         Fragment fragment = null;
@@ -433,7 +442,7 @@ public class Home extends AppCompatActivity
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            Log.d("receiver","music state");
+            //Log.d("receiver","music state");
             String command = intent.getStringExtra("Command");
             int x = intent.getIntExtra("time", 0);
 

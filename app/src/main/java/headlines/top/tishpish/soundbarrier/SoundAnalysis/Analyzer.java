@@ -32,6 +32,7 @@ import org.eazegraph.lib.charts.ValueLineChart;
 import org.eazegraph.lib.models.ValueLinePoint;
 import org.eazegraph.lib.models.ValueLineSeries;
 
+import headlines.top.tishpish.soundbarrier.Database.AppSharedPreference;
 import headlines.top.tishpish.soundbarrier.R;
 
 
@@ -110,6 +111,10 @@ public class Analyzer extends Activity
                     @Override
                     public void run()
                     {
+
+                        AppSharedPreference asp = AppSharedPreference.getInstance(getBaseContext());
+                        asp.updateTime(asp.GetTime()+50);
+
                         double volume = mSensor.getTheAmplitude();
                         //int volumeToSend = (int) volume;
                         updateTextView(R.id.volumeLevel, "Volume: " + volume+"  EMA: "+mSensor.getAmplitudeEMA());
